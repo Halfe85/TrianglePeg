@@ -335,3 +335,82 @@
   .top-actions { gap:4px; }
   .arrow-button { width:38px; }
 }
+
+/* Four-game home grid (retains one-screen mobile sizing). */
+@media (min-width:691px) {
+  .game-grid { grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(0,1fr)); }
+  .game-art { min-height:0; height:clamp(75px,14vh,150px); flex:none; }
+  .game-tile { gap:8px; }
+  .game-card-copy small { min-height:0; }
+}
+@media (max-width:690px) {
+  .game-grid { grid-template-rows:repeat(4,minmax(0,1fr)); }
+  .game-tile { min-height:0; }
+}
+.f1-art { display:flex; flex-direction:column; justify-content:center; align-items:center; gap:6px; }
+.f1-art-row { display:flex; gap:8px; }
+.f1-art-row i { display:block; width:clamp(9px,2vw,18px); aspect-ratio:1; border-radius:50%; background:#f44448; box-shadow:0 0 15px #e1374e99,0 0 4px #ffbcbc; }
+@media (max-width:690px) {
+  .f1-art-row { gap:3px; }
+  .f1-art-row i { width:clamp(7px,2.4vw,12px); }
+  .f1-art { gap:4px; }
+}
+
+/* F1 reflex tests */
+.f1-area { padding:4px 0; }
+.f1-panel {
+  display:flex; flex-direction:column; justify-content:center; align-items:center;
+  gap:clamp(9px,2.2vh,24px);
+  width:min(100%,850px); height:100%; min-height:0;
+  border:1px solid #ffffff18; border-radius:19px;
+  background:radial-gradient(ellipse at 50% 2%,#273f53,#122131 70%);
+  padding:clamp(9px,2.5vh,26px) clamp(10px,3vw,32px);
+  overflow:hidden;
+}
+.f1-start-rig {
+  display:flex; flex-direction:row; align-items:center; justify-content:center;
+  gap:clamp(5px,1.5vw,21px);
+  max-width:100%; padding:clamp(10px,2vh,22px);
+  background:linear-gradient(165deg,#111c27,#090f17);
+  border:3px solid #364a5b; border-radius:16px; box-shadow:0 14px 35px #0008;
+}
+.f1-light-column { display:flex; flex-direction:column; gap:clamp(6px,2vh,22px); }
+.f1-lamp {
+  display:block; width:clamp(24px,6.5vmin,67px); aspect-ratio:1;
+  border:4px solid #252a31; border-radius:50%;
+  background:radial-gradient(circle at 45% 36%,#481e23,#220d13 76%);
+  box-shadow:inset 0 4px 11px #000c,0 0 1px #fff5;
+}
+.f1-light-column.illuminated .f1-lamp {
+  background:radial-gradient(circle at 35% 30%,#ffa29d,#f3444e 46%,#8d111f 90%);
+  box-shadow:0 0 21px #fc283ccc,0 0 6px #ffb7b3,inset 0 2px 5px #fff4;
+}
+.f1-big-readout { font-size:clamp(30px,7vmin,68px); font-weight:950; letter-spacing:-.05em; line-height:1; text-align:center; font-variant-numeric:tabular-nums; color:#f5d2a1; }
+.f1-big-readout.f1-green { color:#95f0aa; text-shadow:0 0 25px #52d78877; }
+.f1-instructions { color:#a6b7c5; max-width:480px; text-align:center; line-height:1.5; font-size:clamp(11px,1.3vw,14px); margin:0; }
+.f1-control { display:flex; justify-content:center; width:100%; }
+.f1-start-button,.f1-tap-button {
+  min-height:clamp(45px,9vh,72px); width:min(100%,280px);
+  border:1px solid #ffdeb4; border-radius:12px; cursor:pointer;
+  background:#e8b177; color:#241a11; font-size:clamp(14px,2.7vmin,22px);
+  font-weight:950; letter-spacing:.05em;
+  touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+}
+.f1-tap-button { background:#cc3647; color:#fff9f3; border-color:#f59ba3; box-shadow:0 0 17px #e7434750; }
+.f1-tap-button:active { background:#fb6572; }
+.f1-start-button:hover { background:#f8c891; }
+.f1-ten-label { font-size:11px; font-weight:900; letter-spacing:.2em; color:#e7b27b; }
+.f1-clock { white-space:nowrap; color:#f1e2cd; font-size:clamp(46px,13vmin,108px); font-weight:950; letter-spacing:-.07em; font-variant-numeric:tabular-nums; line-height:1.15; }
+.f1-clock span { font-size:.32em; color:#cca678; margin-left:4px; }
+.f1-clock.f1-clock-hidden { color:#8596a5; letter-spacing:0; font-size:clamp(42px,10vmin,92px); }
+.f1-clock.f1-clock-done { color:#a1e0b3; }
+.f1-ten-target { font-size:13px; letter-spacing:.14em; font-weight:800; color:#b4c1cc; }
+.f1-ten-target strong { color:#e6ae70; }
+@media (max-height:540px) {
+  .f1-panel { gap:6px; padding-block:8px; }
+  .f1-start-rig { padding:7px; }
+  .f1-lamp { width:clamp(18px,5.2vmin,40px); border-width:2px; }
+  .f1-light-column { gap:6px; }
+  .f1-instructions { font-size:10px; line-height:1.2; }
+  .f1-big-readout { font-size:clamp(25px,6vmin,42px); }
+}

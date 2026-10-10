@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, computed, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, signal } from '@angular/core';
 import {
   applyMove, BOARDS, canStartAt, hasPeg, initialBoard, legalMoves, LEVELS, pegCount,
   type BoardState, type Difficulty, type Hole, type Move
@@ -9,16 +9,22 @@ import {
 import {
   SLIDING_LEVELS, correctTileCount, isSolved, makeSlidingPuzzle, neighbors, slideTile
 } from './sliding-engine';
+import {
+  F1_HIDE_CLOCK_AFTER_MS, F1_HOLD_MIN_MS, F1_LIGHT_INTERVAL_MS, F1_LIGHTS, F1_TEN_SECONDS_MS,
+  F1_HOLD_MAX_MS, formatF1Difference, formatF1Time, reactionHoldDelay,
+  scorePerfect10, scoreReaction, type F1Mode, type F1Stage
+} from './f1-engine';
 
-type GameId = 'peg' | 'lights' | 'sliding';
+type GameId = 'peg' | 'lights' | 'sliding' | 'f1';
 type PegStatus = 'choosing' | 'playing' | 'won' | 'stuck';
 type BestByLevel = Partial<Record<Difficulty, number>>;
 interface GameStats {
-  first: number;
+  first: number | string;
   firstLabel: string;
   moves: number;
-  best: number | null;
+  best: number | string | null;
   bestLabel: string;
+  movesLabel?: string;
   progress: number;
   max: number;
 }
@@ -35,11 +41,12 @@ interface Choice {
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent {
+export class AppComponent implements OnDestroy {
   @ViewChild('newGameDialog') private newGameDialog?: ElementRef<HTMLDialogElement>;
 
   readonly game = signal<GameId | null>(null);
   readonly pendingLevel = signal<Difficulty>('easy');
+  readonly pendingF1Mode = signal<F1Mode>('reaction');
   readonly choices = computed<Choice[]>(() => {
     switch (this.game()) {
       case 'lights': return LIGHT_LEVELS.map(level => ({
@@ -110,6 +117,39 @@ export class AppComponent {
   readonly tilesCorrect = computed(() => correctTileCount(this.tilesBoard()));
   readonly tilesBest = signal<BestByLevel>(this.readMoveBest('utgardnet-sliding-best-v1'));
 
+  // F1 Start Lights: both modes use performance.now() for timing, and scores
+  // are kept separately in localStorage.
+  readonly f1Mode = signal<F1Mode>('reaction');
+  readonly f1Stage = signal<F1Stage>('idle');
+  readonly f1LightPositions: readonly number[] = [0, 1, 2, 3, 4];
+  readonly f1Lit = signal(0);
+  readonly f1Elapsed = signal(0);
+  readonly f1Attempts = signal(0);
+  readonly f1ResultMs = signal<number | null>(null);
+  readonly f1DifferenceMs = signal<number | null>(null);
+  readonly f1Feedback = signal('Start the test, then react when all five lights go out.');
+  readonly f1BestReaction = signal<number | null>(this.readF1Best('utgardnet-f1-reaction-best-v1'));
+  readonly f1BestPerfect = signal<number | null>(this.readF1Best('utgardnet-f1-perfect10-best-v1'));
+  readonly f1Active = computed(() => ['countdown', 'go', 'running'].includes(this.f1Stage()));
+  readonly f1ResultText = computed(() => {
+    if (this.f1Stage() === 'false-start') return 'FALSE';
+    if (this.f1Stage() !== 'result') return '—';
+    return this.f1Mode() === 'reaction'
+      ? formatF1Time(this.f1ResultMs() ?? 0)
+      : formatF1Difference(this.f1DifferenceMs() ?? 0);
+  });
+  readonly f1DisplayClock = computed(() => {
+    if (this.f1Mode() !== 'perfect10') return '';
+    if (this.f1Stage() === 'running' && this.f1Elapsed() >= F1_HIDE_CLOCK_AFTER_MS) return '••.•••';
+    return (this.f1Elapsed() / 1000).toFixed(3);
+  });
+  readonly f1ModeName = computed(() =>
+    this.f1Mode() === 'reaction' ? 'Reaction Start' : '10 Seconds Perfect');
+  private f1Timers: number[] = [];
+  private f1Tick: number | null = null;
+  private f1StartedAt = 0;
+  private f1GoAt = 0;
+
   readonly currentLevel = computed(() => {
     switch (this.game()) {
       case 'lights': return this.lightsLevel();
@@ -128,22 +168,34 @@ export class AppComponent {
         }
       case 'lights': return this.lightsWon() ? 'SOLVED' : 'IN PLAY';
       case 'sliding': return this.tilesWon() ? 'SOLVED' : 'IN PLAY';
+      case 'f1':
+        switch (this.f1Stage()) {
+          case 'countdown': return 'WAIT FOR LIGHTS';
+          case 'go': return 'GO!';
+          case 'running': return 'COUNT TO TEN';
+          case 'false-start': return 'FALSE START';
+          case 'result': return 'FINISHED';
+          default: return 'READY';
+        }
       default: return '';
     }
   });
   readonly currentWon = computed(() =>
     this.game() === 'lights' ? this.lightsWon() :
-    this.game() === 'sliding' ? this.tilesWon() : this.status() === 'won'
+    this.game() === 'sliding' ? this.tilesWon() :
+    this.game() === 'f1' ? this.f1Stage() === 'result' : this.status() === 'won'
   );
   readonly currentFeedback = computed(() =>
     this.game() === 'lights' ? this.lightFeedback() :
-    this.game() === 'sliding' ? this.tilesFeedback() : this.feedback()
+    this.game() === 'sliding' ? this.tilesFeedback() :
+    this.game() === 'f1' ? this.f1Feedback() : this.feedback()
   );
   readonly canUndo = computed(() => {
     switch (this.game()) {
       case 'peg': return !this.choosingStart() && this.history().length > 0;
       case 'lights': return this.lightHistory().length > 0;
       case 'sliding': return this.tilesHistory().length > 0;
+      case 'f1': return false;
       default: return false;
     }
   });
@@ -152,11 +204,27 @@ export class AppComponent {
       case 'peg': return !this.choosingStart() && this.future().length > 0;
       case 'lights': return this.lightFuture().length > 0;
       case 'sliding': return this.tilesFuture().length > 0;
+      case 'f1': return false;
       default: return false;
     }
   });
   readonly stats = computed<GameStats>(() => {
     switch (this.game()) {
+      case 'f1': {
+        const mode = this.f1Mode();
+        const bestMs = mode === 'reaction' ? this.f1BestReaction() : this.f1BestPerfect();
+        return {
+          first: this.f1ResultText(),
+          firstLabel: mode === 'reaction' ? 'REACTION TIME' : 'ERROR FROM 10.000s',
+          moves: this.f1Attempts(), movesLabel: 'ATTEMPTS',
+          best: bestMs === null ? null : formatF1Time(bestMs),
+          bestLabel: mode === 'reaction' ? 'BEST REACTION' : 'CLOSEST TO 10s',
+          progress: mode === 'reaction'
+            ? this.f1Lit()
+            : Math.min(F1_TEN_SECONDS_MS, this.f1Elapsed()),
+          max: mode === 'reaction' ? F1_LIGHTS : F1_TEN_SECONDS_MS
+        };
+      }
       case 'lights': {
         const count = this.lightsSize() ** 2;
         return {
@@ -191,16 +259,21 @@ export class AppComponent {
     }
   });
 
-  goHome(): void { this.game.set(null); }
+  goHome(): void {
+    if (this.game() === 'f1' && this.f1Active()) this.resetF1();
+    this.game.set(null);
+  }
   openGame(id: GameId): void { this.game.set(id); }
 
   openNewGame(): void {
-    if (this.game() === null) return;
+    if (this.game() === null || (this.game() === 'f1' && this.f1Active())) return;
     this.pendingLevel.set(this.currentLevel());
+    this.pendingF1Mode.set(this.f1Mode());
     const dialog = this.newGameDialog?.nativeElement;
     if (dialog && !dialog.open) dialog.showModal();
   }
   chooseDifficulty(level: Difficulty): void { this.pendingLevel.set(level); }
+  chooseF1Mode(mode: F1Mode): void { this.pendingF1Mode.set(mode); }
   cancelNewGame(): void { this.newGameDialog?.nativeElement.close(); }
   dismissModalBackdrop(event: MouseEvent): void {
     if (event.target === this.newGameDialog?.nativeElement) this.cancelNewGame();
@@ -209,6 +282,14 @@ export class AppComponent {
   confirmNewGame(): void {
     this.newGameDialog?.nativeElement.close();
     switch (this.game()) {
+      case 'f1':
+        this.resetF1();
+        this.f1Mode.set(this.pendingF1Mode());
+        this.f1Attempts.set(0);
+        this.f1Feedback.set(this.f1Mode() === 'reaction'
+          ? 'Press Start. Wait for five red lights to go out, then tap!'
+          : 'Press Start, count ten seconds, and tap Stop as accurately as possible.');
+        break;
       case 'peg':
         this.levelId.set(this.pendingLevel());
         this.startHole.set(this.puzzle().recommendedOpening);
@@ -283,6 +364,137 @@ export class AppComponent {
         break;
       }
     }
+  }
+
+
+  private scheduleF1(callback: () => void, delay: number): void {
+    this.f1Timers.push(window.setTimeout(callback, delay));
+  }
+  private clearF1Timers(): void {
+    for (const timer of this.f1Timers) window.clearTimeout(timer);
+    this.f1Timers = [];
+    if (this.f1Tick !== null) {
+      window.clearInterval(this.f1Tick);
+      this.f1Tick = null;
+    }
+  }
+  private resetF1(): void {
+    this.clearF1Timers();
+    this.f1Stage.set('idle');
+    this.f1Lit.set(0);
+    this.f1Elapsed.set(0);
+    this.f1ResultMs.set(null);
+    this.f1DifferenceMs.set(null);
+    this.f1GoAt = 0;
+  }
+  ngOnDestroy(): void {
+    this.clearF1Timers();
+  }
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (document.hidden && this.game() === 'f1' && this.f1Active()) {
+      this.resetF1();
+      this.f1Feedback.set('Round cancelled because the tab was hidden. Start a new attempt.');
+    }
+  }
+  private randomF1Hold(): number {
+    const sample = new Uint32Array(1);
+    // GitHub Pages is HTTPS; crypto provides an unpredictable hold length.
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      crypto.getRandomValues(sample);
+      return reactionHoldDelay(sample[0] / 0x100000000);
+    }
+    return reactionHoldDelay(Math.random());
+  }
+  startF1Round(): void {
+    if (this.game() !== 'f1' || this.f1Active()) return;
+    this.resetF1();
+    this.f1Attempts.update(n => n + 1);
+    this.f1StartedAt = performance.now();
+    if (this.f1Mode() === 'reaction') {
+      this.f1Stage.set('countdown');
+      this.f1Feedback.set('Wait until all five red lights go OUT. Early taps are false starts.');
+      for (let count = 1; count <= F1_LIGHTS; count++) {
+        this.scheduleF1(() => {
+          if (this.f1Stage() === 'countdown') this.f1Lit.set(count);
+        }, count * F1_LIGHT_INTERVAL_MS);
+      }
+      this.scheduleF1(() => {
+        if (this.f1Stage() !== 'countdown') return;
+        this.f1GoAt = performance.now();
+        this.f1Lit.set(0);
+        this.f1Stage.set('go');
+        this.f1Feedback.set('LIGHTS OUT! TAP NOW!');
+      }, F1_LIGHTS * F1_LIGHT_INTERVAL_MS + this.randomF1Hold());
+    } else {
+      this.f1Stage.set('running');
+      this.f1Feedback.set('Count to exactly 10 seconds. The clock disappears after 3 seconds.');
+      this.f1Tick = window.setInterval(() => {
+        if (this.f1Stage() === 'running') {
+          this.f1Elapsed.set(performance.now() - this.f1StartedAt);
+        }
+      }, 40);
+    }
+  }
+  f1Tap(event: PointerEvent): void {
+    if (!event.isPrimary) return;
+    this.recordF1Tap();
+  }
+  f1KeyboardTap(event: KeyboardEvent): void {
+    if (event.repeat) return;
+    event.preventDefault();
+    this.recordF1Tap();
+  }
+  private recordF1Tap(): void {
+    if (this.game() !== 'f1' || !this.f1Active()) return;
+    const tappedAt = performance.now();
+    if (this.f1Mode() === 'reaction') {
+      if (this.f1Stage() === 'countdown') {
+        this.clearF1Timers();
+        this.f1Stage.set('false-start');
+        this.f1Feedback.set('FALSE START! You tapped before the lights went out. Try again.');
+        return;
+      }
+      if (this.f1Stage() !== 'go') return;
+      const result = scoreReaction(tappedAt, this.f1GoAt);
+      this.clearF1Timers();
+      if (result.kind === 'false-start') {
+        this.f1Stage.set('false-start');
+        this.f1Feedback.set('False start. Try again.');
+        return;
+      }
+      this.f1ResultMs.set(result.reactionMs);
+      this.f1Stage.set('result');
+      this.f1Feedback.set(`Reaction: ${formatF1Time(result.reactionMs)}. Try to beat your record!`);
+      this.saveF1Best('reaction', result.reactionMs);
+    } else if (this.f1Stage() === 'running') {
+      const result = scorePerfect10(this.f1StartedAt, tappedAt);
+      this.clearF1Timers();
+      this.f1Elapsed.set(result.elapsedMs);
+      this.f1DifferenceMs.set(result.differenceMs);
+      this.f1ResultMs.set(result.absoluteErrorMs);
+      this.f1Stage.set('result');
+      this.f1Feedback.set(
+        `Stopped at ${formatF1Time(result.elapsedMs)} — ${formatF1Difference(result.differenceMs)} from 10.000s.`
+      );
+      this.saveF1Best('perfect10', result.absoluteErrorMs);
+    }
+  }
+  private readF1Best(key: string): number | null {
+    try {
+      const stored = localStorage.getItem(key);
+      if (stored === null) return null;
+      const score = Number(stored);
+      return Number.isFinite(score) && score >= 0 && score < 60000 ? score : null;
+    } catch { return null; }
+  }
+  private saveF1Best(mode: F1Mode, score: number): void {
+    const holder = mode === 'reaction' ? this.f1BestReaction : this.f1BestPerfect;
+    if (holder() !== null && holder()! <= score) return;
+    holder.set(score);
+    const key = mode === 'reaction'
+      ? 'utgardnet-f1-reaction-best-v1' : 'utgardnet-f1-perfect10-best-v1';
+    try { localStorage.setItem(key, String(score)); } catch { /* Optional. */ }
   }
 
   lightIsOn(index: number): boolean { return isLightOn(this.lightBoard(), index); }
