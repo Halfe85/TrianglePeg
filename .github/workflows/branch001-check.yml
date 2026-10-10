@@ -1,0 +1,24 @@
+name: Test game collection (branch001)
+
+on:
+  push:
+    branches: [branch001]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test all game engines
+        run: npm test
+      - name: Build Angular for GitHub Pages
+        run: npm run build -- --base-href /TrianglePeg/
