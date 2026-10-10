@@ -1,91 +1,101 @@
-<div class="shell">
-  <header class="header">
-    <a class="logo" href="./" aria-label="Triangle Peg home">
-      <span class="logo-triangle" aria-hidden="true">▲</span> TRIANGLE<span>PEG</span>
-    </a>
-    <span class="header-note">CLASSIC SOLO PUZZLE <span class="ornament">●</span> 15 HOLES</span>
+<div class="app-shell">
+  <header class="topbar">
+    <div class="brand" aria-label="Triangle Peg">
+      <span class="brand-icon" aria-hidden="true">▲</span>
+      <span class="brand-long">TRIANGLE</span><span class="brand-accent">PEG</span>
+    </div>
+    <nav class="top-actions" aria-label="Game controls">
+      <button type="button" class="top-button new-game"
+        (click)="newGame()" title="Start a new game and choose the starting hole">
+        <span class="plus-icon" aria-hidden="true">+</span><span>New game</span>
+      </button>
+      <span class="action-divider" aria-hidden="true"></span>
+      <button type="button" class="top-button arrow-button"
+        [disabled]="history().length===0 || choosingStart()" (click)="undo()"
+        aria-label="Undo last jump" title="Undo last jump">
+        <span aria-hidden="true">↶</span>
+      </button>
+      <button type="button" class="top-button arrow-button"
+        [disabled]="future().length===0 || choosingStart()" (click)="redo()"
+        aria-label="Redo last undone jump" title="Redo last undone jump">
+        <span aria-hidden="true">↷</span>
+      </button>
+    </nav>
   </header>
-  <div class="intro">
-    <p class="eyebrow">— THE ONE-PEG CHALLENGE</p>
-    <h1>Small board. <em>Big brain.</em></h1>
-    <p>Leap over a peg, remove it, and keep going. The whole point? Leave only one.</p>
-  </div>
 
-  <main class="layout">
-    <section class="game-card" aria-label="Triangle Peg game">
-      <div class="card-head">
-        <span class="eyebrow">THE PLAYING FIELD</span>
+  <main class="content" aria-label="Triangle Peg game">
+    <div class="content-header">
+      <div class="game-heading">
+        <span class="eyebrow">THE ONE-PEG CHALLENGE</span>
+        <span class="game-subtitle">Jump over a peg. Leave just one.</span>
+      </div>
+      <div class="content-tools">
+        <button type="button" class="hint-button" (click)="hint()"
+          [disabled]="status()!=='playing'" title="Highlight a recommended jump">
+          <span aria-hidden="true">✧</span> Hint
+        </button>
         <span class="status" [class.won]="status()==='won'" [class.stuck]="status()==='stuck'">
-          <span class="status-dot"></span>
+          <span class="status-dot" aria-hidden="true"></span>
           @switch(status()){
             @case('choosing'){ CHOOSE A HOLE }
-            @case('won'){ PUZZLE SOLVED }
+            @case('won'){ SOLVED }
             @case('stuck'){ NO MOVES LEFT }
             @default{ IN PLAY }
           }
         </span>
       </div>
-      <div class="board-wrapper">
-        <div class="board" role="group" aria-label="Fifteen-hole triangular playing board">
-          <div class="board-shadow" aria-hidden="true"></div>
-          <div class="triangle-board" aria-hidden="true"></div>
-          @for(hole of holes;track hole.id){
-            <button type="button" class="hole"
-              [class.occupied]="hasPeg(hole.id)"
-              [class.selected]="selected()===hole.id"
-              [class.target]="targets().has(hole.id)"
-              [class.hint-from]="suggestion()?.from===hole.id"
-              [class.hint-to]="suggestion()?.to===hole.id"
-              [class.choosing]="choosingStart()"
-              [style.left.%]="hole.x" [style.top.%]="hole.y"
-              [attr.aria-label]="holeLabel(hole)"
-              [attr.aria-pressed]="selected()===hole.id"
-              [disabled]="status()==='won'||status()==='stuck'"
-              (click)="onHoleClick(hole.id)">
-              <span class="socket" aria-hidden="true">
-                @if(hasPeg(hole.id)){ <span class="peg"></span> }
-              </span>
-            </button>
-          }
-        </div>
-      </div>
-      <div class="feedback" aria-live="polite"><span class="feedback-icon" aria-hidden="true">i</span>{{ feedback() }}</div>
-      @if(status()==='won'||status()==='stuck'){
-        <div class="result" [class.perfect]="status()==='won'" role="status">
-          <strong>{{ status()==='won'?'Perfect finish!':'No legal jumps left.' }}</strong>
-          <span>{{ status()==='won'?'Just one peg remains. Well played.':'You can undo a jump and try another route.' }}</span>
-        </div>
-      }
-      <div class="actions">
-        <button type="button" class="action muted" (click)="undo()" [disabled]="history().length===0||choosingStart()"><span aria-hidden="true">↶</span> Undo</button>
-        <button type="button" class="action muted" (click)="hint()" [disabled]="status()!=='playing'"><span aria-hidden="true">✧</span> Hint</button>
-        <button type="button" class="action muted" (click)="restart()"><span aria-hidden="true">↻</span> Restart</button>
-        <button type="button" class="action new" (click)="newGame()"><span aria-hidden="true">＋</span> New game</button>
+    </div>
+
+    <section class="board-area" aria-label="Playing board">
+      <div class="board" role="group" aria-label="Fifteen-hole triangular peg board">
+        <div class="board-shadow" aria-hidden="true"></div>
+        <div class="triangle-board" aria-hidden="true"></div>
+        @for(hole of holes;track hole.id){
+          <button type="button" class="hole"
+            [class.occupied]="hasPeg(hole.id)"
+            [class.selected]="selected()===hole.id"
+            [class.target]="targets().has(hole.id)"
+            [class.hint-from]="suggestion()?.from===hole.id"
+            [class.hint-to]="suggestion()?.to===hole.id"
+            [class.choosing]="choosingStart()"
+            [style.left.%]="hole.x" [style.top.%]="hole.y"
+            [attr.aria-label]="holeLabel(hole)"
+            [attr.aria-pressed]="selected()===hole.id"
+            [disabled]="status()==='won'||status()==='stuck'"
+            (click)="onHoleClick(hole.id)">
+            <span class="socket" aria-hidden="true">
+              @if(hasPeg(hole.id)){ <span class="peg"></span> }
+            </span>
+          </button>
+        }
       </div>
     </section>
-    <aside class="sidebar">
-      <section class="stats" aria-label="Game progress">
-        <div class="card-head"><span class="eyebrow">YOUR RUN</span><span class="badge">01 / 01</span></div>
-        <div class="count"><span>{{ pegsLeft() }}</span><strong>PEGS<br>REMAINING</strong></div>
-        <div class="meter" aria-hidden="true"><span [style.width.%]="choosingStart()?0:((14-pegsLeft())/13)*100"></span></div>
-        <div class="meter-labels"><span>14 PEGS</span><span>1 PEG</span></div>
-        <div class="stats-bottom">
-          <div><strong>{{ moves() }}</strong><small>JUMPS MADE</small></div>
-          <div><strong>{{ bestResult() ?? '—' }}</strong><small>PERSONAL BEST</small></div>
-        </div>
-        <p class="stats-note">Personal best is your fewest pegs at the end of a game, saved on this device.</p>
-      </section>
-      <section class="rules">
-        <div class="card-head"><span class="eyebrow">HOW TO PLAY</span><span class="question">?</span></div>
-        <ol>
-          <li><b>01</b><span><strong>Pick a peg</strong>Choose one with an available jump.</span></li>
-          <li><b>02</b><span><strong>Jump over another</strong>Land two spaces away in an empty hole.</span></li>
-          <li><b>03</b><span><strong>Remove the middle peg</strong>Each jump eliminates one peg.</span></li>
-          <li><b>04</b><span><strong>Leave just one</strong>One remaining peg is a perfect finish.</span></li>
-        </ol>
-        <p class="tip"><span aria-hidden="true">✦</span> Choose <strong>New game</strong> to pick a different starting empty hole.</p>
-      </section>
-    </aside>
+
+    <div class="feedback" aria-live="polite" [class.good-news]="status()==='won'">
+      <span class="feedback-icon" aria-hidden="true">{{ status()==='won' ? '★' : 'i' }}</span>
+      <span class="feedback-message">{{ feedback() }}</span>
+    </div>
   </main>
-  <footer>TRIANGLE PEG <span> / </span> MADE FOR THINKERS <i>NO LOGIN. JUST ONE MORE MOVE.</i></footer>
+
+  <footer class="bottom-bar" aria-label="Game statistics">
+    <div class="stats-row">
+      <div class="stat">
+        <strong class="stat-value accent">{{ pegsLeft() }}</strong>
+        <span class="stat-label">PEGS LEFT</span>
+      </div>
+      <div class="stat">
+        <strong class="stat-value">{{ moves() }}</strong>
+        <span class="stat-label">JUMPS MADE</span>
+      </div>
+      <div class="stat">
+        <strong class="stat-value">{{ bestResult() ?? '—' }}</strong>
+        <span class="stat-label">PERSONAL BEST</span>
+      </div>
+    </div>
+    <div class="progress-track" role="progressbar"
+      aria-label="Puzzle progress" aria-valuemin="0" aria-valuemax="13"
+      [attr.aria-valuenow]="choosingStart()?0:14-pegsLeft()">
+      <div class="progress-fill" [style.width.%]="choosingStart()?0:((14-pegsLeft())/13)*100"></div>
+    </div>
+  </footer>
 </div>

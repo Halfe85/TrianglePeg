@@ -18,6 +18,7 @@ export class AppComponent {
   readonly selected=signal<number|null>(null);
   readonly suggestion=signal<Move|null>(null);
   readonly history=signal<readonly number[]>([]);
+  readonly future=signal<readonly number[]>([]);
   readonly bestResult=signal<number|null>(this.readBest());
   readonly feedback=signal('Select a peg, then tap a highlighted empty hole to jump.');
   readonly pegsLeft=computed(()=>pegCount(this.board()));
@@ -68,16 +69,36 @@ export class AppComponent {
   }
   undo():void {
     const previous=this.history();
-    if(previous.length===0) return;
+    if(previous.length===0 || this.choosingStart()) return;
+    this.future.update(steps=>[...steps,this.board()]);
     this.board.set(previous[previous.length-1]);
     this.history.set(previous.slice(0,-1));
+    this.clearSelection();
+    this.feedback.set('Jump undone. Make your next move, or use Redo.');
+  }
+  redo():void {
+    const next=this.future();
+    if(next.length===0 || this.choosingStart()) return;
+    this.history.update(steps=>[...steps,this.board()]);
+    this.board.set(next[next.length-1]);
+    this.future.set(next.slice(0,-1));
+    this.clearSelection();
+    if(this.pegsLeft()===1){
+      this.feedback.set('Perfect! You solved the triangle with one peg left.');
+    }else if(this.options().length===0){
+      this.feedback.set('No jumps remain. Undo to try another route.');
+    }else{
+      this.feedback.set('Jump restored. Continue playing.');
+    }
+  }
+  private clearSelection():void {
     this.selected.set(null);
     this.suggestion.set(null);
-    this.feedback.set('Jump undone. Choose your next move.');
   }
   restart():void {
     this.board.set(initialBoard(this.startHole()));
     this.history.set([]);
+    this.future.set([]);
     this.selected.set(null);
     this.suggestion.set(null);
     this.choosingStart.set(false);
@@ -86,6 +107,7 @@ export class AppComponent {
   newGame():void {
     this.board.set(FULL_BOARD);
     this.history.set([]);
+    this.future.set([]);
     this.selected.set(null);
     this.suggestion.set(null);
     this.choosingStart.set(true);
@@ -104,6 +126,7 @@ export class AppComponent {
     const current=this.board();
     const next=applyMove(current,move);
     this.history.update(items=>[...items,current]);
+    this.future.set([]); // A new move invalidates the redo branch.
     this.board.set(next);
     this.selected.set(null);
     this.suggestion.set(null);
