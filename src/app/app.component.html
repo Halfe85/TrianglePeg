@@ -1,109 +1,206 @@
 <div class="app-shell">
   <header class="topbar">
-    <div class="brand" aria-label="Triangle Peg">
+    <button type="button" class="brand" (click)="goHome()" aria-label="Go to all games">
       <span class="brand-icon" aria-hidden="true">▲</span>
-      <span class="brand-long">TRIANGLE</span><span class="brand-accent">PEG</span>
-    </div>
+      <span class="brand-long">UTGARDNET</span><span class="brand-accent">PUZZLES</span>
+    </button>
     <nav class="top-actions" aria-label="Game controls">
-      <button type="button" class="top-button new-game"
-        (click)="openNewGame()" title="Choose difficulty and start a new game">
-        <span class="plus-icon" aria-hidden="true">+</span><span>New game</span>
-      </button>
-      <span class="action-divider" aria-hidden="true"></span>
-      <button type="button" class="top-button arrow-button"
-        [disabled]="history().length===0 || choosingStart()" (click)="undo()"
-        aria-label="Undo last jump" title="Undo last jump">
-        <span aria-hidden="true">↶</span>
-      </button>
-      <button type="button" class="top-button arrow-button"
-        [disabled]="future().length===0 || choosingStart()" (click)="redo()"
-        aria-label="Redo last undone jump" title="Redo last undone jump">
-        <span aria-hidden="true">↷</span>
-      </button>
+      @if(game() !== null) {
+        <button type="button" class="top-button home-button" (click)="goHome()" title="All games"
+          aria-label="Return to game selection">▦ <span>Games</span></button>
+        <button type="button" class="top-button new-game" (click)="openNewGame()"
+          title="Choose a difficulty and start a fresh game">
+          <span class="plus-icon" aria-hidden="true">+</span><span>New game</span>
+        </button>
+        <span class="action-divider" aria-hidden="true"></span>
+        <button type="button" class="top-button arrow-button"
+          [disabled]="!canUndo()" (click)="undo()"
+          aria-label="Undo last move" title="Undo last move">
+          <span aria-hidden="true">↶</span>
+        </button>
+        <button type="button" class="top-button arrow-button"
+          [disabled]="!canRedo()" (click)="redo()"
+          aria-label="Redo last undone move" title="Redo last undone move">
+          <span aria-hidden="true">↷</span>
+        </button>
+      } @else {
+        <span class="header-note">THREE GAMES · ONE COLLECTION</span>
+      }
     </nav>
   </header>
 
-  <main class="content" aria-label="Triangle Peg game">
-    <div class="content-header">
-      <span class="level-indicator">{{ level().label }} · {{ puzzle().holes.length }} holes</span>
-      <span class="status" [class.won]="status()==='won'" [class.stuck]="status()==='stuck'">
-        <span class="status-dot" aria-hidden="true"></span>
-        @switch(status()){
-          @case('choosing'){ CHOOSE A HOLE }
-          @case('won'){ SOLVED }
-          @case('stuck'){ NO MOVES LEFT }
-          @default{ IN PLAY }
-        }
-      </span>
-    </div>
-
-    <section class="board-area" aria-label="Playing board">
-      <div class="board" role="group" aria-label="Triangular peg board"
-        [style.--peg-width]="pegDiameter()">
-        <div class="board-shadow" aria-hidden="true"></div>
-        <div class="triangle-board" aria-hidden="true"></div>
-        @for(hole of holes(); track hole.id) {
-          <button type="button" class="hole"
-            [class.occupied]="hasPeg(hole.id)"
-            [class.selected]="selected()===hole.id"
-            [class.target]="targets().has(hole.id)"
-            [class.choosing]="choosingStart() && openingAllowed(hole.id)"
-            [class.unavailable-start]="choosingStart() && !openingAllowed(hole.id)"
-            [style.left.%]="hole.x" [style.top.%]="hole.y"
-            [attr.aria-label]="holeLabel(hole)"
-            [attr.aria-pressed]="selected()===hole.id"
-            [disabled]="status()==='won'||status()==='stuck'"
-            (click)="onHoleClick(hole.id)">
-            <span class="socket" aria-hidden="true">
-              @if(hasPeg(hole.id)) { <span class="peg"></span> }
+  <main class="content" [class.home-content]="game()===null">
+    @if(game()===null) {
+      <section class="game-library" aria-label="Choose a game">
+        <div class="library-heading">
+          <span class="modal-eyebrow">THE PUZZLE COLLECTION</span>
+          <h1>Pick your challenge<span class="dot">.</span></h1>
+          <p>Three classic brain teasers, four difficulty levels, and no hints.</p>
+        </div>
+        <div class="game-grid">
+          <button class="game-tile" type="button" (click)="openGame('peg')" aria-label="Play Triangle Peg">
+            <span class="game-art peg-art" aria-hidden="true">▲</span>
+            <span class="game-card-copy">
+              <span class="game-tag">JUMP PUZZLE</span>
+              <strong>Triangle Peg</strong>
+              <small>Jump over pegs until only one remains.</small>
+              <span class="game-meta">15–36 holes · 4 levels <span aria-hidden="true">→</span></span>
             </span>
           </button>
-        }
+          <button class="game-tile" type="button" (click)="openGame('lights')" aria-label="Play Lights Out">
+            <span class="game-art lights-art" aria-hidden="true">
+              <span class="art-bulb"></span><span class="art-bulb on"></span><span class="art-bulb"></span>
+              <span class="art-bulb on"></span><span class="art-bulb on"></span><span class="art-bulb"></span>
+              <span class="art-bulb"></span><span class="art-bulb on"></span><span class="art-bulb on"></span>
+            </span>
+            <span class="game-card-copy">
+              <span class="game-tag">TOGGLE LOGIC</span>
+              <strong>Lights Out</strong>
+              <small>Switch the entire grid off, one tap at a time.</small>
+              <span class="game-meta">3×3–6×6 grids · 4 levels <span aria-hidden="true">→</span></span>
+            </span>
+          </button>
+          <button class="game-tile" type="button" (click)="openGame('sliding')" aria-label="Play 15 Puzzle">
+            <span class="game-art sliding-art" aria-hidden="true">
+              <span>1</span><span>2</span><span>3</span>
+              <span>4</span><span>5</span><span>6</span>
+              <span>7</span><span>8</span><span class="art-blank"></span>
+            </span>
+            <span class="game-card-copy">
+              <span class="game-tag">SLIDING TILES</span>
+              <strong>15 Puzzle</strong>
+              <small>Slide numbered tiles back into perfect order.</small>
+              <span class="game-meta">3×3–6×6 grids · 4 levels <span aria-hidden="true">→</span></span>
+            </span>
+          </button>
+        </div>
+      </section>
+    } @else {
+      <div class="content-header">
+        <span class="level-indicator">
+          @switch(game()) {
+            @case('peg') { TRIANGLE PEG · {{ level().label }} · {{ puzzle().holes.length }} HOLES }
+            @case('lights') { LIGHTS OUT · {{ currentLevel().toUpperCase() }} · {{ lightsSize() }}×{{ lightsSize() }} }
+            @case('sliding') { 15 PUZZLE · {{ currentLevel().toUpperCase() }} · {{ slidingSize() }}×{{ slidingSize() }} }
+          }
+        </span>
+        <span class="status" [class.won]="currentWon()" [class.stuck]="game()==='peg' && status()==='stuck'">
+          <span class="status-dot" aria-hidden="true"></span>{{ currentStatus() }}
+        </span>
       </div>
-    </section>
 
-    <div class="feedback" aria-live="polite" [class.good-news]="status()==='won'">
-      <span class="feedback-icon" aria-hidden="true">{{ status()==='won' ? '★' : 'i' }}</span>
-      <span class="feedback-message">{{ feedback() }}</span>
-    </div>
+      @switch(game()) {
+        @case('peg') {
+          <section class="board-area" aria-label="Triangle Peg game board">
+            <div class="board" role="group" aria-label="Triangular peg board"
+              [style.--peg-width]="pegDiameter()">
+              <div class="board-shadow" aria-hidden="true"></div>
+              <div class="triangle-board" aria-hidden="true"></div>
+              @for(hole of holes(); track hole.id) {
+                <button type="button" class="hole"
+                  [class.occupied]="hasPeg(hole.id)"
+                  [class.selected]="selected()===hole.id"
+                  [class.target]="targets().has(hole.id)"
+                  [class.choosing]="choosingStart() && openingAllowed(hole.id)"
+                  [class.unavailable-start]="choosingStart() && !openingAllowed(hole.id)"
+                  [style.left.%]="hole.x" [style.top.%]="hole.y"
+                  [attr.aria-label]="holeLabel(hole)"
+                  [attr.aria-pressed]="selected()===hole.id"
+                  [disabled]="status()==='won'||status()==='stuck'"
+                  (click)="onHoleClick(hole.id)">
+                  <span class="socket" aria-hidden="true">
+                    @if(hasPeg(hole.id)) { <span class="peg"></span> }
+                  </span>
+                </button>
+              }
+            </div>
+          </section>
+        }
+        @case('lights') {
+          <section class="board-area" aria-label="Lights Out game board">
+            <div class="square-board lights-board" role="group"
+              [style.--grid-size]="lightsSize()"
+              [attr.aria-label]="lightsSize()+' by '+lightsSize()+' lights grid'">
+              @for(index of lightsCells(); track index) {
+                <button type="button" class="light-cell"
+                  [class.on]="lightIsOn(index)"
+                  [disabled]="lightsWon()"
+                  [attr.aria-label]="'Light ' + (index+1) + (lightIsOn(index) ? ' on' : ' off')"
+                  [attr.aria-pressed]="lightIsOn(index)"
+                  (click)="tapLight(index)">
+                  <span class="light-core" aria-hidden="true"></span>
+                </button>
+              }
+            </div>
+          </section>
+        }
+        @case('sliding') {
+          <section class="board-area" aria-label="15 Puzzle game board">
+            <div class="square-board sliding-board" role="group"
+              [style.--grid-size]="slidingSize()"
+              [attr.aria-label]="slidingSize()+' by '+slidingSize()+' sliding puzzle grid'">
+              @for(tile of tilesBoard(); track $index) {
+                <button type="button" class="number-tile"
+                  [class.blank]="tile===0"
+                  [class.movable]="tile!==0 && canSlide($index)"
+                  [disabled]="tile===0 || !canSlide($index) || tilesWon()"
+                  [attr.aria-label]="tile===0 ? 'Empty space' : 'Tile '+tile"
+                  (click)="tapTile($index)">
+                  {{ tile===0 ? '' : tile }}
+                </button>
+              }
+            </div>
+          </section>
+        }
+      }
+
+      <div class="feedback" aria-live="polite" [class.good-news]="currentWon()">
+        <span class="feedback-icon" aria-hidden="true">{{ currentWon() ? '★' : 'i' }}</span>
+        <span class="feedback-message">{{ currentFeedback() }}</span>
+      </div>
+    }
   </main>
 
   <footer class="bottom-bar" aria-label="Game statistics">
-    <div class="stats-row">
-      <div class="stat">
-        <strong class="stat-value accent">{{ choosingStart() ? puzzle().holes.length - 1 : pegsLeft() }}</strong>
-        <span class="stat-label">PEGS LEFT</span>
+    @if(game()!==null) {
+      <div class="stats-row">
+        <div class="stat">
+          <strong class="stat-value accent">{{ stats().first }}</strong>
+          <span class="stat-label">{{ stats().firstLabel }}</span>
+        </div>
+        <div class="stat">
+          <strong class="stat-value">{{ stats().moves }}</strong>
+          <span class="stat-label">MOVES MADE</span>
+        </div>
+        <div class="stat">
+          <strong class="stat-value">{{ stats().best ?? '—' }}</strong>
+          <span class="stat-label">{{ stats().bestLabel }}</span>
+        </div>
       </div>
-      <div class="stat">
-        <strong class="stat-value">{{ moves() }}</strong>
-        <span class="stat-label">JUMPS MADE</span>
+      <div class="progress-track" role="progressbar"
+        aria-label="Puzzle progress" aria-valuemin="0"
+        [attr.aria-valuemax]="stats().max" [attr.aria-valuenow]="stats().progress">
+        <div class="progress-fill" [style.width.%]="stats().max ? stats().progress/stats().max*100 : 0"></div>
       </div>
-      <div class="stat">
-        <strong class="stat-value">{{ bestResult() ?? '—' }}</strong>
-        <span class="stat-label">BEST · {{ level().label.toUpperCase() }}</span>
+    } @else {
+      <div class="collection-footer">
+        <span>THINK · PLAY · REPEAT</span>
+        <span>OFFLINE-FRIENDLY · NO ACCOUNT REQUIRED</span>
       </div>
-    </div>
-    <div class="progress-track" role="progressbar"
-      aria-label="Puzzle progress" aria-valuemin="0" [attr.aria-valuemax]="totalJumps()"
-      [attr.aria-valuenow]="choosingStart()?0:totalJumps()+1-pegsLeft()">
-      <div class="progress-fill"
-        [style.width.%]="choosingStart()?0:((puzzle().holes.length-1-pegsLeft())/totalJumps())*100"></div>
-    </div>
+    }
   </footer>
 
   <dialog #newGameDialog class="new-game-dialog" aria-labelledby="new-game-title"
     aria-describedby="new-game-description" (click)="dismissModalBackdrop($event)">
     <div class="modal-content">
       <div class="modal-heading">
-        <div><span class="modal-eyebrow">TRIANGLE PEG</span>
-          <h2 id="new-game-title">New game</h2>
-        </div>
+        <div><span class="modal-eyebrow">UTGARDNET PUZZLES</span><h2 id="new-game-title">New game</h2></div>
         <button type="button" class="dialog-close"
           aria-label="Close new game dialog" (click)="cancelNewGame()">×</button>
       </div>
-      <p class="modal-description" id="new-game-description">Choose a difficulty to start a fresh triangle.</p>
+      <p class="modal-description" id="new-game-description">Choose a difficulty for a fresh puzzle.</p>
       <div class="modal-levels" role="group" aria-label="Difficulty">
-        @for(item of levels; track item.id) {
+        @for(item of choices(); track item.id) {
           <button type="button" class="modal-level"
             [class.active]="pendingLevel()===item.id"
             [attr.aria-pressed]="pendingLevel()===item.id"
@@ -112,14 +209,16 @@
               <strong>{{ item.label }}</strong>
               <span class="level-check" aria-hidden="true">{{ pendingLevel()===item.id ? '✓' : '' }}</span>
             </span>
-            <span class="modal-hole-count">{{ item.rows*(item.rows+1)/2 }} holes · {{ item.rows }} rows</span>
+            <span class="modal-hole-count">{{ item.details }}</span>
             <small>{{ item.subtitle }}</small>
           </button>
         }
       </div>
       <div class="modal-actions">
         <button type="button" class="modal-cancel" (click)="cancelNewGame()">Cancel</button>
-        <button type="button" class="modal-start" (click)="confirmNewGame()">Start game <span aria-hidden="true">→</span></button>
+        <button type="button" class="modal-start" (click)="confirmNewGame()">
+          Start game <span aria-hidden="true">→</span>
+        </button>
       </div>
     </div>
   </dialog>

@@ -27,6 +27,10 @@
 }
 .brand {
   display: inline-flex;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
   align-items: center;
   gap: 0;
   white-space: nowrap;
@@ -210,4 +214,111 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* One-screen puzzle collection home. */
+.home-content { display: grid; place-items: center; }
+.game-library { display:grid; grid-template-rows:auto minmax(0,1fr); align-content:center; gap:clamp(12px,3vh,26px); width:min(100%,1100px); max-height:100%; min-height:0; margin:auto; }
+.library-heading { text-align:center; }
+.library-heading h1 { margin:7px 0 9px; font-size:clamp(25px,4.5vw,46px); letter-spacing:-.055em; line-height:1.05; }
+.library-heading p { color:#96aabc; font-size:clamp(11px,1.5vw,14px); margin:0; }
+.library-heading .dot { color:#e7af6b; }
+.game-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:clamp(8px,1.6vw,20px); min-height:0; }
+.game-tile { display:flex; flex-direction:column; align-items:stretch; gap:12px; text-align:left; border:1px solid #ffffff28; background:linear-gradient(155deg,#213648,#142335); color:#f8eee1; border-radius:17px; padding:clamp(13px,2vw,22px); cursor:pointer; min-height:0; overflow:hidden; transition:transform .15s,background .15s,border-color .15s; }
+.game-tile:hover { transform:translateY(-3px); border-color:#e7af6b88; background:linear-gradient(155deg,#294358,#16293b); }
+.game-art { flex:1; min-height:125px; max-height:240px; display:grid; place-items:center; border-radius:12px; overflow:hidden; background:radial-gradient(ellipse at center,#4a61727a,#0d1d2be0); }
+.peg-art { font-size:clamp(65px,11vw,145px); color:#e7b275; text-shadow:0 5px 0 #754728,0 14px 30px #0009; }
+.lights-art { grid-template-columns:repeat(3,27px); grid-template-rows:repeat(3,27px); justify-content:center; align-content:center; gap:6px; }
+.art-bulb { display:block; border-radius:6px; width:27px; height:27px; background:#152d3d; border:2px solid #385063; }
+.art-bulb.on { background:#f0c27c; border-color:#fff0bd; box-shadow:0 0 15px #edb66899; }
+.sliding-art { grid-template-columns:repeat(3,32px); grid-template-rows:repeat(3,32px); justify-content:center; align-content:center; gap:4px; }
+.sliding-art span { display:grid; place-items:center; border-radius:5px; font-weight:900; font-size:16px; color:#281c12; background:#deb07a; }
+.sliding-art .art-blank { background:#0c1b29; }
+.game-card-copy { display:flex; flex-direction:column; gap:7px; }
+.game-card-copy strong { font-size:clamp(17px,2vw,23px); letter-spacing:-.035em; }
+.game-card-copy small { color:#a8b9c8; line-height:1.5; font-size:12px; min-height:36px; }
+.game-tag { color:#d8a872; font-size:9px; letter-spacing:.18em; font-weight:850; }
+.game-meta { border-top:1px solid #ffffff22; padding-top:11px; color:#e2ba88; font-size:11px; font-weight:700; display:flex; justify-content:space-between; gap:10px; }
+.game-meta span { font-size:19px; line-height:.6; }
+.header-note,.collection-footer { color:#98aabc; font-weight:850; font-size:10px; letter-spacing:.15em; }
+.collection-footer { display:flex; justify-content:space-between; width:min(100%,1000px); margin:auto; padding:13px 0; gap:10px; }
+.home-button { display:flex; align-items:center; justify-content:center; gap:6px; padding:0 11px; font-size:14px; }
+.home-button span { font-size:12px; }
+
+/* CSS-size-contained square puzzle boards for mobile and landscape. */
+.square-board {
+  width:min(88cqw,86cqh,620px);
+  aspect-ratio:1;
+  display:grid;
+  grid-template-columns:repeat(var(--grid-size),minmax(0,1fr));
+  grid-template-rows:repeat(var(--grid-size),minmax(0,1fr));
+  gap:clamp(4px,.8vmin,9px);
+  padding:clamp(10px,2vmin,18px);
+  border-radius:clamp(12px,2vmin,24px);
+  box-shadow:0 24px 60px #0008,inset 0 1px 1px #ffffff29;
+  min-height:0;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.lights-board { background:linear-gradient(145deg,#253f54,#122333); border:2px solid #64829b66; }
+.light-cell {
+  border:2px solid #375266; padding:0; background:linear-gradient(150deg,#132b3c,#081925);
+  box-shadow:inset 0 3px 10px #0008,0 2px 1px #0007;
+  border-radius:clamp(6px,1.1vmin,13px); display:grid; place-items:center;
+  cursor:pointer; touch-action:manipulation; transition:background .12s,box-shadow .12s;
+}
+.light-cell .light-core { width:54%; aspect-ratio:1; border-radius:50%; background:#294055; box-shadow:inset 0 1px 5px #07131f; }
+.light-cell.on { background:linear-gradient(145deg,#ffe2a4,#e5aa56); border-color:#f8d9a0; box-shadow:0 0 15px #e9bd7299,inset 0 2px 6px #fff2ce; }
+.light-cell.on .light-core { background:#ffecb8; box-shadow:0 0 15px 5px #fff0c59a; }
+.light-cell:disabled { cursor:default; }
+.sliding-board { background:linear-gradient(145deg,#b37a48,#71462e); border:3px solid #dfab74; gap:clamp(3px,.65vmin,7px); }
+.number-tile { display:grid; place-items:center; padding:0; min-width:0; min-height:0; border:1px solid #fff6d080; border-bottom:4px solid #a66f3a; border-radius:clamp(5px,1vmin,11px); background:linear-gradient(135deg,#ffedc5,#e7b679); color:#553016; font-size:clamp(15px,5.5vmin,48px); font-weight:950; text-shadow:0 1px 0 #fff7db; cursor:pointer; touch-action:manipulation; box-shadow:0 4px 9px #25150b52; }
+.number-tile.movable { background:linear-gradient(135deg,#fff9d8,#f0c98b); }
+.number-tile:disabled:not(.blank) { opacity:.97; cursor:default; }
+.number-tile.blank { background:radial-gradient(ellipse at center,#6e462e,#4c2e1e); border:1px solid #512a15; box-shadow:inset 0 4px 10px #221209a9; cursor:default; }
+
+@media (max-width:850px) {
+  .brand { font-size:16px; }
+  .game-art { min-height:100px; }
+  .game-tile { gap:9px; }
+}
+@media (max-width:690px) {
+  .brand-long { display:none; }
+  .home-button { width:39px; padding:0; }
+  .home-button span { display:none; }
+  .top-actions { gap:5px; }
+  .game-library { width:100%; gap:12px; }
+  .game-grid { grid-template-columns:1fr; grid-template-rows:repeat(3,minmax(0,1fr)); gap:8px; }
+  .game-tile { flex-direction:row; align-items:center; gap:12px; padding:10px; }
+  .game-art { flex:0 0 25%; height:100%; min-height:0; max-height:none; }
+  .peg-art { font-size:clamp(39px,8vw,65px); }
+  .lights-art { grid-template-columns:repeat(3,15px); grid-template-rows:repeat(3,15px); gap:3px; }
+  .art-bulb { width:15px; height:15px; border-radius:4px; border-width:1px; }
+  .sliding-art { grid-template-columns:repeat(3,17px); grid-template-rows:repeat(3,17px); gap:2px; }
+  .sliding-art span { font-size:10px; border-radius:2px; }
+  .game-card-copy { flex:1; min-width:0; gap:3px; }
+  .game-card-copy strong { font-size:17px; }
+  .game-card-copy small { min-height:0; font-size:11px; }
+  .game-meta { padding-top:5px; font-size:10px; }
+  .library-heading h1 { font-size:clamp(23px,6.5vw,36px); margin:4px 0 5px; }
+  .library-heading p { font-size:11px; }
+  .collection-footer { font-size:8px; justify-content:center; }
+  .collection-footer span:last-child { display:none; }
+  .square-board { width:min(95cqw,88cqh,580px); }
+  .number-tile { font-size:clamp(15px,6vw,34px); }
+}
+@media (max-height:550px) and (min-width:691px) {
+  .game-art { min-height:55px; }
+  .game-tile { padding:10px; gap:6px; }
+  .game-card-copy small { min-height:0; font-size:10px; }
+  .library-heading h1 { font-size:25px; }
+  .square-board { width:min(90cqw,88cqh,620px); }
+}
+@media (max-height:550px) and (max-width:690px) {
+  .library-heading p { display:none; }
+  .game-tile { padding:5px 8px; gap:8px; }
+  .game-tag,.game-card-copy small { display:none; }
+  .game-card-copy strong { font-size:15px; }
+  .game-meta { font-size:9px; }
+  .library-heading h1 { font-size:20px; }
 }
