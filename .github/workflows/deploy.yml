@@ -1,15 +1,19 @@
 name: Deploy Triangle Peg to GitHub Pages
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
-  group: github-pages
-  cancel-in-progress: true
+  group: pages
+  cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -17,21 +21,36 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Run game-rule tests
+
+      - name: Test peg game rules
         run: npm test
-      - name: Build static GitHub Pages site
+
+      - name: Build Angular for GitHub Pages
         run: npm run build -- --base-href /TrianglePeg/
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+
+      - name: Verify static website
+        run: |
+          test -f dist/triangle-peg/browser/index.html
+          test -f dist/triangle-peg/browser/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Angular website
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist/triangle-peg/browser
+
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

@@ -13,7 +13,7 @@ Jump over an adjacent peg into an empty hole two positions away. The peg you jum
 - **Restart** — return to the initial board using the same empty starting hole.
 - **Personal best** — stores the lowest number of pegs left in a completed game in browser localStorage.
 
-You can use a mouse, touch, or a keyboard (Tab to navigate and Enter/Space to select).
+Play with a mouse, touch, or keyboard (Tab to navigate, Enter/Space to select).
 
 ## Run locally
 
@@ -31,10 +31,19 @@ npm test
 npm run build -- --base-href /TrianglePeg/
 ```
 
-## GitHub Pages
+## GitHub Pages deployment
 
-This repository includes an automatic deploy workflow (`.github/workflows/deploy.yml`). On the GitHub repository, visit **Settings → Pages** and set the source to **GitHub Actions**. Commits to `main` then test, build, and deploy to:
+**Live address:** https://halfe85.github.io/TrianglePeg/
 
-**https://halfe85.github.io/TrianglePeg/**
+The GitHub Pages site must publish the **built Angular files**, not the TypeScript source and not a Jekyll site. The repository therefore uses **one** GitHub Actions workflow: `.github/workflows/deploy.yml`.
 
-No backend, user account, or online database is required. The rules are isolated in `src/app/peg-engine.ts`; the solver searches memoized board positions (15-bit masks).
+1. Open repository **Settings → Pages**.
+2. Under **Build and deployment**, choose **GitHub Actions** as the source.
+3. Push to `main`, or manually run **Deploy Triangle Peg to GitHub Pages** from the Actions tab.
+4. After a successful deployment, open the live address above.
+
+The workflow installs dependencies, runs the peg-engine tests, builds Angular using `/TrianglePeg/` as the base path, uploads `dist/triangle-peg/browser`, and deploys that directory.
+
+**Do not enable GitHub's starter Jekyll workflow** (`jekyll-gh-pages.yml`) alongside this workflow. Jekyll does not compile Angular and concurrent deployments can overwrite the game with unbuilt source files. The generated site includes `.nojekyll` for compatibility with static GitHub Pages publishing.
+
+No backend, login, or online database is required. The pure rule engine is in `src/app/peg-engine.ts` and searches memoized 15-bit board positions.
