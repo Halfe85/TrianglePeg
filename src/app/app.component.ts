@@ -440,6 +440,11 @@ export class AppComponent implements OnDestroy {
     if (!event.isPrimary) return;
     this.recordF1Tap();
   }
+  f1ClickTap(): void {
+    // Covers keyboard/button activation and assistive technologies. Pointerdown
+    // usually handles touch first; the subsequent click sees a finished round.
+    this.recordF1Tap();
+  }
   f1KeyboardTap(event: Event): void {
     const keyboard = event as KeyboardEvent;
     if (keyboard.repeat) return;

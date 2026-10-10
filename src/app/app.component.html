@@ -212,6 +212,7 @@
                 } @else {
                   <button type="button" class="f1-tap-button"
                     (pointerdown)="f1Tap($event)"
+                    (click)="f1ClickTap()"
                     (keydown.space)="f1KeyboardTap($event)"
                     (keydown.enter)="f1KeyboardTap($event)"
                     [attr.aria-label]="f1Mode()==='reaction' ? 'React to start lights' : 'Stop ten second timer'">
