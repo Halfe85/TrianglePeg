@@ -38,8 +38,10 @@ jobs:
       - name: Build Angular for GitHub Pages
         run: npm run build -- --base-href /TrianglePeg/
 
-      - name: Verify static website
+      - name: Prepare static website
         run: |
+          # Avoid Jekyll processing even if hosting source settings change.
+          touch dist/triangle-peg/browser/.nojekyll
           test -f dist/triangle-peg/browser/index.html
           test -f dist/triangle-peg/browser/.nojekyll
 
