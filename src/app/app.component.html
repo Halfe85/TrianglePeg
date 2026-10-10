@@ -6,7 +6,7 @@
     </div>
     <nav class="top-actions" aria-label="Game controls">
       <button type="button" class="top-button new-game"
-        (click)="newGame()" title="Start a new game and choose the starting hole">
+        (click)="openNewGame()" title="Choose difficulty and start a new game">
         <span class="plus-icon" aria-hidden="true">+</span><span>New game</span>
       </button>
       <span class="action-divider" aria-hidden="true"></span>
@@ -25,36 +25,16 @@
 
   <main class="content" aria-label="Triangle Peg game">
     <div class="content-header">
-      <div class="levels" role="group" aria-label="Difficulty level">
-        @for(item of levels; track item.id) {
-          <button type="button" class="level-choice"
-            [class.active]="levelId()===item.id"
-            [attr.aria-pressed]="levelId()===item.id"
-            [title]="item.rows + ' rows, ' + (item.rows*(item.rows+1)/2) + ' holes'"
-            (click)="selectLevel(item.id)">
-            {{ item.label }}
-          </button>
+      <span class="level-indicator">{{ level().label }} · {{ puzzle().holes.length }} holes</span>
+      <span class="status" [class.won]="status()==='won'" [class.stuck]="status()==='stuck'">
+        <span class="status-dot" aria-hidden="true"></span>
+        @switch(status()){
+          @case('choosing'){ CHOOSE A HOLE }
+          @case('won'){ SOLVED }
+          @case('stuck'){ NO MOVES LEFT }
+          @default{ IN PLAY }
         }
-      </div>
-      <div class="content-tools">
-        <button type="button" class="hint-button"
-          [disabled]="!canHint()" (click)="hint()"
-          [title]="level().hints===0 ? 'Hints disabled on Extreme' : 'Highlight a possible winning jump'">
-          <span aria-hidden="true">✧</span>
-          @if(level().hints===null){ Hint }
-          @else if(level().hints===0){ No hints }
-          @else { Hint ({{ hintRemaining() }}) }
-        </button>
-        <span class="status" [class.won]="status()==='won'" [class.stuck]="status()==='stuck'">
-          <span class="status-dot" aria-hidden="true"></span>
-          @switch(status()){
-            @case('choosing'){ CHOOSE A HOLE }
-            @case('won'){ SOLVED }
-            @case('stuck'){ NO MOVES LEFT }
-            @default{ IN PLAY }
-          }
-        </span>
-      </div>
+      </span>
     </div>
 
     <section class="board-area" aria-label="Playing board">
@@ -67,8 +47,6 @@
             [class.occupied]="hasPeg(hole.id)"
             [class.selected]="selected()===hole.id"
             [class.target]="targets().has(hole.id)"
-            [class.hint-from]="suggestion()?.from===hole.id"
-            [class.hint-to]="suggestion()?.to===hole.id"
             [class.choosing]="choosingStart() && openingAllowed(hole.id)"
             [class.unavailable-start]="choosingStart() && !openingAllowed(hole.id)"
             [style.left.%]="hole.x" [style.top.%]="hole.y"
@@ -112,4 +90,37 @@
         [style.width.%]="choosingStart()?0:((puzzle().holes.length-1-pegsLeft())/totalJumps())*100"></div>
     </div>
   </footer>
+
+  <dialog #newGameDialog class="new-game-dialog" aria-labelledby="new-game-title"
+    aria-describedby="new-game-description" (click)="dismissModalBackdrop($event)">
+    <div class="modal-content">
+      <div class="modal-heading">
+        <div><span class="modal-eyebrow">TRIANGLE PEG</span>
+          <h2 id="new-game-title">New game</h2>
+        </div>
+        <button type="button" class="dialog-close"
+          aria-label="Close new game dialog" (click)="cancelNewGame()">×</button>
+      </div>
+      <p class="modal-description" id="new-game-description">Choose a difficulty to start a fresh triangle.</p>
+      <div class="modal-levels" role="group" aria-label="Difficulty">
+        @for(item of levels; track item.id) {
+          <button type="button" class="modal-level"
+            [class.active]="pendingLevel()===item.id"
+            [attr.aria-pressed]="pendingLevel()===item.id"
+            (click)="chooseDifficulty(item.id)">
+            <span class="modal-level-top">
+              <strong>{{ item.label }}</strong>
+              <span class="level-check" aria-hidden="true">{{ pendingLevel()===item.id ? '✓' : '' }}</span>
+            </span>
+            <span class="modal-hole-count">{{ item.rows*(item.rows+1)/2 }} holes · {{ item.rows }} rows</span>
+            <small>{{ item.subtitle }}</small>
+          </button>
+        }
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="modal-cancel" (click)="cancelNewGame()">Cancel</button>
+        <button type="button" class="modal-start" (click)="confirmNewGame()">Start game <span aria-hidden="true">→</span></button>
+      </div>
+    </div>
+  </dialog>
 </div>

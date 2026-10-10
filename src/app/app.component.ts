@@ -1,7 +1,7 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, computed, signal } from '@angular/core';
 import {
   applyMove, BOARDS, canStartAt, hasPeg, initialBoard, legalMoves, LEVELS, pegCount,
-  searchSolution, type BoardState, type Difficulty, type Hole, type Move
+  type BoardState, type Difficulty, type Hole, type Move
 } from './peg-engine';
 
 type Status = 'choosing' | 'playing' | 'won' | 'stuck';
@@ -14,20 +14,23 @@ type BestByLevel = Partial<Record<Difficulty, number>>;
   styleUrl: './app.component.css'
 })
 export class AppComponent {
+  @ViewChild('newGameDialog') private newGameDialog?: ElementRef<HTMLDialogElement>;
   readonly levels = LEVELS;
   readonly levelId = signal<Difficulty>('easy');
+  readonly pendingLevel = signal<Difficulty>('easy');
   readonly level = computed(() => LEVELS.find(level => level.id === this.levelId())!);
   readonly puzzle = computed(() => BOARDS[this.levelId()]);
   readonly holes = computed(() => this.puzzle().holes);
-  readonly pegDiameter = computed(() => `${Math.min(11.2, 0.78 * 74 / (this.puzzle().rows - 1))}%`);
+  // Smaller pegs maintain clear spacing on denser grids.
+  readonly pegDiameter = computed(() => ({
+    easy: '9.3%', medium: '7.8%', hard: '6.8%', extreme: '5.9%'
+  })[this.levelId()]);
   readonly board = signal<BoardState>(initialBoard());
   readonly startHole = signal(0);
   readonly choosingStart = signal(false);
   readonly selected = signal<number | null>(null);
-  readonly suggestion = signal<Move | null>(null);
   readonly history = signal<readonly BoardState[]>([]);
   readonly future = signal<readonly BoardState[]>([]);
-  readonly hintsUsed = signal(0);
   readonly bestByLevel = signal<BestByLevel>(this.readBest());
   readonly bestResult = computed(() => this.bestByLevel()[this.levelId()] ?? null);
   readonly feedback = signal('Select a peg, then choose a highlighted empty hole.');
@@ -36,28 +39,45 @@ export class AppComponent {
   readonly moves = computed(() => this.history().length);
   readonly totalJumps = computed(() => this.puzzle().holes.length - 2);
   readonly options = computed(() => legalMoves(this.board(), this.puzzle()));
-  readonly hintRemaining = computed(() => {
-    const limit = this.level().hints;
-    return limit === null ? null : Math.max(0, limit - this.hintsUsed());
-  });
   readonly status = computed<Status>(() => {
     if (this.choosingStart()) return 'choosing';
     if (this.pegsLeft() === 1) return 'won';
     return this.options().length === 0 ? 'stuck' : 'playing';
   });
-  readonly canHint = computed(() =>
-    this.status() === 'playing' && (this.hintRemaining() === null || this.hintRemaining()! > 0)
-  );
   readonly targets = computed(() => new Set(this.options()
     .filter(move => move.from === this.selected()).map(move => move.to)));
   readonly movable = computed(() => new Set(this.options().map(move => move.from)));
 
-  selectLevel(id: Difficulty): void {
-    if (id === this.levelId()) return;
-    this.levelId.set(id);
+  openNewGame(): void {
+    this.pendingLevel.set(this.levelId());
+    const dialog = this.newGameDialog?.nativeElement;
+    if (dialog && !dialog.open) dialog.showModal();
+  }
+
+  chooseDifficulty(id: Difficulty): void {
+    this.pendingLevel.set(id);
+  }
+
+  cancelNewGame(): void {
+    this.newGameDialog?.nativeElement.close();
+  }
+
+  confirmNewGame(): void {
+    this.newGameDialog?.nativeElement.close();
+    this.levelId.set(this.pendingLevel());
     this.startHole.set(this.puzzle().recommendedOpening);
-    this.restart();
-    this.feedback.set(`${this.level().label}: ${this.puzzle().holes.length} holes. ${this.level().subtitle}.`);
+    this.board.set(this.puzzle().fullBoard);
+    this.history.set([]);
+    this.future.set([]);
+    this.clearSelection();
+    this.choosingStart.set(true);
+    this.feedback.set(this.levelId() === 'hard'
+      ? 'Choose a highlighted starting hole. Some Hard openings cannot be solved.'
+      : 'Choose any peg to remove for your starting empty hole.');
+  }
+
+  dismissModalBackdrop(event: MouseEvent): void {
+    if (event.target === this.newGameDialog?.nativeElement) this.cancelNewGame();
   }
 
   hasPeg(id: number): boolean { return hasPeg(this.board(), id); }
@@ -103,7 +123,6 @@ export class AppComponent {
       this.play(move);
       return;
     }
-    this.suggestion.set(null);
     if (this.hasPeg(id) && this.movable().has(id)) {
       this.selected.set(id);
       this.feedback.set('Now choose a highlighted empty hole.');
@@ -141,40 +160,13 @@ export class AppComponent {
     this.board.set(initialBoard(this.startHole(), this.puzzle()));
     this.history.set([]);
     this.future.set([]);
-    this.hintsUsed.set(0);
     this.clearSelection();
     this.choosingStart.set(false);
     this.feedback.set('Fresh board. Select a peg to begin.');
   }
 
-  newGame(): void {
-    this.board.set(this.puzzle().fullBoard);
-    this.history.set([]);
-    this.future.set([]);
-    this.hintsUsed.set(0);
-    this.clearSelection();
-    this.choosingStart.set(true);
-    this.feedback.set(this.levelId() === 'hard'
-      ? 'Choose a glowing hole as your vacancy; some Hard openings are impossible.'
-      : 'Choose any peg to remove and create your starting empty hole.');
-  }
-
-  hint(): void {
-    if (!this.canHint()) return;
-    this.hintsUsed.update(count => count + 1);
-    const result = searchSolution(this.board(), this.puzzle());
-    this.suggestion.set(result.path?.[0] ?? this.options()[0] ?? null);
-    this.selected.set(null);
-    this.feedback.set(result.path !== null
-      ? 'Blue marks the peg to move. Green marks a winning landing hole.'
-      : result.complete
-        ? 'This position has no one-peg solution. The marked jump is legal, but Undo may be better.'
-        : 'Search limit reached. The marked jump is legal, but not guaranteed to win.');
-  }
-
   private clearSelection(): void {
     this.selected.set(null);
-    this.suggestion.set(null);
   }
 
   private play(move: Move): void {

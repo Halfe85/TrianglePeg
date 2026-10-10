@@ -28,7 +28,6 @@ export interface Level {
   readonly id: Difficulty;
   readonly label: string;
   readonly rows: number;
-  readonly hints: number | null;
   readonly subtitle: string;
 }
 export interface SearchResult {
@@ -38,10 +37,10 @@ export interface SearchResult {
 }
 
 export const LEVELS: readonly Level[] = [
-  { id: 'easy', label: 'Easy', rows: 5, hints: null, subtitle: 'The classic triangle' },
-  { id: 'medium', label: 'Medium', rows: 6, hints: 3, subtitle: 'Six rows to clear' },
-  { id: 'hard', label: 'Hard', rows: 7, hints: 1, subtitle: 'Choose your opening carefully' },
-  { id: 'extreme', label: 'Extreme', rows: 8, hints: 0, subtitle: 'No hints. Thirty-four jumps.' }
+  { id: 'easy', label: 'Easy', rows: 5, subtitle: 'The classic triangle' },
+  { id: 'medium', label: 'Medium', rows: 6, subtitle: 'Six rows to clear' },
+  { id: 'hard', label: 'Hard', rows: 7, subtitle: 'Choose your opening carefully' },
+  { id: 'extreme', label: 'Extreme', rows: 8, subtitle: 'Thirty-four jumps to conquer' }
 ];
 
 const DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
@@ -58,8 +57,9 @@ export function createTriangle(rows: number): TriangleBoard {
       id: (row * (row + 1)) / 2 + column,
       row,
       column,
-      x: 50 + (column - row / 2) * 74 / (rows - 1),
-      y: 13 + row * 72 / (rows - 1)
+      // More space around the corners and between pegs on every board.
+      x: 50 + (column - row / 2) * 68 / (rows - 1),
+      y: 16 + row * 66 / (rows - 1)
     }))
   ).flat();
   const byCoordinate = new Map(holes.map(h => [`${h.row},${h.column}`, h.id]));

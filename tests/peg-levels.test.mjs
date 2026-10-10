@@ -65,6 +65,15 @@ test('bounded searches report an incomplete result rather than an impossible puz
   assert.equal(result.complete, false);
 });
 
-test('each difficulty has an independent hint allowance', () => {
-  assert.deepEqual(LEVELS.map(l => l.hints), [null, 3, 1, 0]);
+test('hole positions leave a generous margin around the wooden edges', () => {
+  for (const level of LEVELS) {
+    const holes = BOARDS[level.id].holes;
+    for (const h of holes) {
+      assert.ok(h.x >= 16 && h.x <= 84, `horizontal placement on ${level.id}`);
+      assert.ok(h.y >= 16 && h.y <= 82, `vertical placement on ${level.id}`);
+    }
+    const last = holes.filter(h => h.row === level.rows - 1);
+    assert.equal(last[0].x, 16);
+    assert.equal(last.at(-1).x, 84);
+  }
 });
