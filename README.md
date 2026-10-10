@@ -1,49 +1,55 @@
 # Triangle Peg
 
-A **2D triangular peg solitaire** game made with Angular, TypeScript, and CSS. Play the classic 15-hole board on desktop or mobile.
+A responsive, **single-screen 2D triangular peg solitaire** game for GitHub Pages, built in Angular and TypeScript.
 
-## How to play
+**Play:** https://halfe85.github.io/TrianglePeg/
 
-Jump over an adjacent peg into an empty hole two positions away. The peg you jumped disappears. Keep jumping until only **one peg** remains.
+## Four difficulty levels
 
-- **New game** — select any of the 15 holes to be the initial empty space.
-- **Move** — tap a peg, then tap one of the glowing empty destinations.
-- **Hint** — outlines a jump on a winning path when possible, otherwise shows a legal move and warns that no perfect solution remains.
-- **Undo** — reverse the last jump.
-- **Restart** — return to the initial board using the same empty starting hole.
-- **Personal best** — stores the lowest number of pegs left in a completed game in browser localStorage.
+| Level | Rows | Holes | Jumps to leave one | Hints |
+| --- | ---: | ---: | ---: | --- |
+| Easy | 5 | 15 | 13 | Unlimited |
+| Medium | 6 | 21 | 19 | 3 per game |
+| Hard | 7 | 28 | 26 | 1 per game |
+| Extreme | 8 | 36 | 34 | None |
 
-Play with a mouse, touch, or keyboard (Tab to navigate, Enter/Space to select).
+The 7-row triangular board has restricted valid initial vacancies. Starting with a corner or some central-class holes vacant makes a one-peg finish mathematically impossible, so the app marks and rejects these starting positions. Other levels permit any starting vacancy. Every default opening has been verified with a legal one-peg winning route.
 
-## Run locally
+The levels are distinct by board geometry and jump count, with fewer hints on higher difficulties. Undo and Redo remain available throughout, except while choosing a new opening.
+
+## Rules
+
+Jump over an adjacent peg into an empty hole two positions away along any of the triangle's three axes. The jumped peg disappears. Win when exactly one peg remains.
+
+- Use the **Easy / Medium / Hard / Extreme** controls above the playing board to change difficulty.
+- **New game:** select an allowable hole to make the first vacancy.
+- **Undo** / **Redo:** traverse move history. Making a new move after Undo clears redo history.
+- **Hint:** marks a jump on a winning route when the bounded solver finds one. If no complete route is found inside its search budget, a merely legal jump is marked and labeled accordingly.
+- **Stats:** pegs left, jumps made and per-difficulty personal best in the bottom bar.
+- **Personal best:** the lowest number of pegs left when a game ends, saved in localStorage. Legacy Easy records are migrated.
+
+The viewport is a fixed top bar, game content and bottom stats bar, with no page scrolling. Desktop and mobile use the same layout; the board shrinks within the available screen area.
+
+## Development
 
 Use Node.js 20.19+, 22.12+, or 24+:
 
 ```sh
 npm install
 npm start
-```
-
-Visit the local URL reported by Angular (usually http://localhost:4200).
-
-```sh
 npm test
 npm run build -- --base-href /TrianglePeg/
 ```
 
-## GitHub Pages deployment
+The pure rules and solver are in `src/app/peg-engine.ts`. It uses BigInt masks for the 36-hole board and memoized, budget-limited search for hints.
 
-**Live address:** https://halfe85.github.io/TrianglePeg/
+## GitHub Pages
 
-The GitHub Pages site must publish the **built Angular files**, not the TypeScript source and not a Jekyll site. The repository therefore uses **one** GitHub Actions workflow: `.github/workflows/deploy.yml`.
+The single `.github/workflows/deploy.yml` workflow tests, builds and deploys Angular automatically from `main`. GitHub Pages' publishing source should be **GitHub Actions**. Do not enable an additional Jekyll publishing workflow.
 
-1. Open repository **Settings → Pages**.
-2. Under **Build and deployment**, choose **GitHub Actions** as the source.
-3. Push to `main`, or manually run **Deploy Triangle Peg to GitHub Pages** from the Actions tab.
-4. After a successful deployment, open the live address above.
+## Mathematical references
 
-The workflow installs dependencies, runs the peg-engine tests, builds Angular using `/TrianglePeg/` as the base path, uploads `dist/triangle-peg/browser`, and deploys that directory.
+- George Bell, [Triangular Peg Solitaire](https://gibell.net/pegsolitaire/tindex.html) — board families, single-vacancy to single-survivor problems, and the 7-row position classes.
+- George I. Bell, [Solving Triangular Peg Solitaire](https://arxiv.org/abs/math/0703865) — generalized solvability criteria and solution algorithms.
 
-**Do not enable GitHub's starter Jekyll workflow** (`jekyll-gh-pages.yml`) alongside this workflow. Jekyll does not compile Angular and concurrent deployments can overwrite the game with unbuilt source files. The generated site includes `.nojekyll` for compatibility with static GitHub Pages publishing.
-
-No backend, login, or online database is required. The pure rule engine is in `src/app/peg-engine.ts` and searches memoized 15-bit board positions.
+The game is free and runs entirely in the browser: no accounts, server, database or ads.

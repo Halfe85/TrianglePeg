@@ -25,14 +25,25 @@
 
   <main class="content" aria-label="Triangle Peg game">
     <div class="content-header">
-      <div class="game-heading">
-        <span class="eyebrow">THE ONE-PEG CHALLENGE</span>
-        <span class="game-subtitle">Jump over a peg. Leave just one.</span>
+      <div class="levels" role="group" aria-label="Difficulty level">
+        @for(item of levels; track item.id) {
+          <button type="button" class="level-choice"
+            [class.active]="levelId()===item.id"
+            [attr.aria-pressed]="levelId()===item.id"
+            [title]="item.rows + ' rows, ' + (item.rows*(item.rows+1)/2) + ' holes'"
+            (click)="selectLevel(item.id)">
+            {{ item.label }}
+          </button>
+        }
       </div>
       <div class="content-tools">
-        <button type="button" class="hint-button" (click)="hint()"
-          [disabled]="status()!=='playing'" title="Highlight a recommended jump">
-          <span aria-hidden="true">✧</span> Hint
+        <button type="button" class="hint-button"
+          [disabled]="!canHint()" (click)="hint()"
+          [title]="level().hints===0 ? 'Hints disabled on Extreme' : 'Highlight a possible winning jump'">
+          <span aria-hidden="true">✧</span>
+          @if(level().hints===null){ Hint }
+          @else if(level().hints===0){ No hints }
+          @else { Hint ({{ hintRemaining() }}) }
         </button>
         <span class="status" [class.won]="status()==='won'" [class.stuck]="status()==='stuck'">
           <span class="status-dot" aria-hidden="true"></span>
@@ -47,24 +58,26 @@
     </div>
 
     <section class="board-area" aria-label="Playing board">
-      <div class="board" role="group" aria-label="Fifteen-hole triangular peg board">
+      <div class="board" role="group" aria-label="Triangular peg board"
+        [style.--peg-width]="pegDiameter()">
         <div class="board-shadow" aria-hidden="true"></div>
         <div class="triangle-board" aria-hidden="true"></div>
-        @for(hole of holes;track hole.id){
+        @for(hole of holes(); track hole.id) {
           <button type="button" class="hole"
             [class.occupied]="hasPeg(hole.id)"
             [class.selected]="selected()===hole.id"
             [class.target]="targets().has(hole.id)"
             [class.hint-from]="suggestion()?.from===hole.id"
             [class.hint-to]="suggestion()?.to===hole.id"
-            [class.choosing]="choosingStart()"
+            [class.choosing]="choosingStart() && openingAllowed(hole.id)"
+            [class.unavailable-start]="choosingStart() && !openingAllowed(hole.id)"
             [style.left.%]="hole.x" [style.top.%]="hole.y"
             [attr.aria-label]="holeLabel(hole)"
             [attr.aria-pressed]="selected()===hole.id"
             [disabled]="status()==='won'||status()==='stuck'"
             (click)="onHoleClick(hole.id)">
             <span class="socket" aria-hidden="true">
-              @if(hasPeg(hole.id)){ <span class="peg"></span> }
+              @if(hasPeg(hole.id)) { <span class="peg"></span> }
             </span>
           </button>
         }
@@ -80,7 +93,7 @@
   <footer class="bottom-bar" aria-label="Game statistics">
     <div class="stats-row">
       <div class="stat">
-        <strong class="stat-value accent">{{ pegsLeft() }}</strong>
+        <strong class="stat-value accent">{{ choosingStart() ? puzzle().holes.length - 1 : pegsLeft() }}</strong>
         <span class="stat-label">PEGS LEFT</span>
       </div>
       <div class="stat">
@@ -89,13 +102,14 @@
       </div>
       <div class="stat">
         <strong class="stat-value">{{ bestResult() ?? '—' }}</strong>
-        <span class="stat-label">PERSONAL BEST</span>
+        <span class="stat-label">BEST · {{ level().label.toUpperCase() }}</span>
       </div>
     </div>
     <div class="progress-track" role="progressbar"
-      aria-label="Puzzle progress" aria-valuemin="0" aria-valuemax="13"
-      [attr.aria-valuenow]="choosingStart()?0:14-pegsLeft()">
-      <div class="progress-fill" [style.width.%]="choosingStart()?0:((14-pegsLeft())/13)*100"></div>
+      aria-label="Puzzle progress" aria-valuemin="0" [attr.aria-valuemax]="totalJumps()"
+      [attr.aria-valuenow]="choosingStart()?0:totalJumps()+1-pegsLeft()">
+      <div class="progress-fill"
+        [style.width.%]="choosingStart()?0:((puzzle().holes.length-1-pegsLeft())/totalJumps())*100"></div>
     </div>
   </footer>
 </div>
