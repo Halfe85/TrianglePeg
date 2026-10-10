@@ -10,8 +10,8 @@ import {
   SLIDING_LEVELS, correctTileCount, isSolved, makeSlidingPuzzle, neighbors, slideTile
 } from './sliding-engine';
 import {
-  F1_HIDE_CLOCK_AFTER_MS, F1_HOLD_MIN_MS, F1_LIGHT_INTERVAL_MS, F1_LIGHTS, F1_TEN_SECONDS_MS,
-  F1_HOLD_MAX_MS, formatF1Difference, formatF1Time, reactionHoldDelay,
+  F1_HIDE_CLOCK_AFTER_MS, F1_LIGHT_INTERVAL_MS, F1_LIGHTS, F1_TEN_SECONDS_MS,
+  formatF1Difference, formatF1Time, reactionHoldDelay,
   scorePerfect10, scoreReaction, type F1Mode, type F1Stage
 } from './f1-engine';
 
@@ -215,10 +215,10 @@ export class AppComponent implements OnDestroy {
         const bestMs = mode === 'reaction' ? this.f1BestReaction() : this.f1BestPerfect();
         return {
           first: this.f1ResultText(),
-          firstLabel: mode === 'reaction' ? 'REACTION TIME' : 'ERROR FROM 10.000s',
+          firstLabel: mode === 'reaction' ? 'REACTION TIME' : '10s ERROR',
           moves: this.f1Attempts(), movesLabel: 'ATTEMPTS',
           best: bestMs === null ? null : formatF1Time(bestMs),
-          bestLabel: mode === 'reaction' ? 'BEST REACTION' : 'CLOSEST TO 10s',
+          bestLabel: mode === 'reaction' ? 'BEST REACTION' : 'BEST 10s ERROR',
           progress: mode === 'reaction'
             ? this.f1Lit()
             : Math.min(F1_TEN_SECONDS_MS, this.f1Elapsed()),
@@ -440,9 +440,10 @@ export class AppComponent implements OnDestroy {
     if (!event.isPrimary) return;
     this.recordF1Tap();
   }
-  f1KeyboardTap(event: KeyboardEvent): void {
-    if (event.repeat) return;
-    event.preventDefault();
+  f1KeyboardTap(event: Event): void {
+    const keyboard = event as KeyboardEvent;
+    if (keyboard.repeat) return;
+    keyboard.preventDefault();
     this.recordF1Tap();
   }
   private recordF1Tap(): void {
