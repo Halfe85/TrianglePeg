@@ -322,3 +322,16 @@
   .game-meta { font-size:9px; }
   .library-heading h1 { font-size:20px; }
 }
+
+/* Keep the game controls usable even on very narrow phones. The logo is also
+   the Home button, so the duplicate Games button can disappear. */
+@media (max-width: 410px) {
+  .home-button { display:none; }
+  .topbar { gap:5px; }
+}
+@media (max-width: 350px) {
+  .new-game { min-width:40px; width:40px; padding:0; justify-content:center; }
+  .new-game > span:last-child { display:none; }
+  .top-actions { gap:4px; }
+  .arrow-button { width:38px; }
+}

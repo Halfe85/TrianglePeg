@@ -22,3 +22,10 @@ jobs:
         run: npm test
       - name: Build Angular for GitHub Pages
         run: npm run build -- --base-href /TrianglePeg/
+      - name: Save branch preview files
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch001-puzzle-collection
+          path: dist/triangle-peg/browser/
+          if-no-files-found: error
+          retention-days: 14
